@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CipherPay SDK Test</title>
+</head>
+
+<body>
+    <h1>CipherPay SDK Browser Test</h1>
+    <div id="status">Loading SDK...</div>
+    <div id="output"></div>
+
+    <script src="sdk/cipherpay-sdk.browser.js"></script>
+    <script>
+        function log(message) {
+            const output = document.getElementById('output');
+            output.innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        // Test SDK loading
+        try {
+            if (typeof window.CipherPaySDK !== 'undefined') {
+                updateStatus('✅ SDK loaded successfully!');
+                log('SDK is available in global scope');
+
+                // Test basic SDK functionality
+                const sdk = new window.CipherPaySDK({
+                    chainType: 'solana',
+                    relayerUrl: 'http://localhost:3001',
+                    rpcUrl: 'http://localhost:8899'
+                });
+
+                log('✅ SDK instance created successfully');
+                log('SDK config: ' + JSON.stringify(sdk.config, null, 2));
+
+            } else {
+                updateStatus('❌ SDK not found in global scope');
+                log('ERROR: window.CipherPaySDK is undefined');
+            }
+        } catch (error) {
+            updateStatus('❌ Error loading SDK');
+            log('ERROR: ' + error.message);
+            console.error(error);
+        }
+    </script>
+</body>
+
+</html>
