@@ -25,6 +25,7 @@ import txByMerkleRoot from "./routes/tx.get.by-merkle-root.js";
 import commitmentsPost from "./routes/commitments.post.js";
 import merkleProofGet from "./routes/merkle-proof.get.js";
 import merkleRootGet from "./routes/merkle.root.get.js";
+import circuitsGet from "./routes/circuits.get.js";
 import depositPrepare from "./routes/deposit.prepare.post.js";
 import depositSubmit from "./routes/deposit.submit.post.js";
 import transferPrepare from "./routes/transfer.prepare.post.js";
@@ -159,6 +160,7 @@ await app.register(txByMerkleRoot);
 await app.register(commitmentsPost);
 await app.register(merkleProofGet);
 await app.register(merkleRootGet);
+await app.register(circuitsGet);
 await app.register(depositPrepare);
 await app.register(depositSubmit);
 await app.register(transferPrepare);
@@ -170,11 +172,6 @@ await app.register(accountOverview);
 await app.register(messagesGet);
 await app.register(relayerInfo);
 await app.register(usersNoteEncPubKey);
-
-// Start on-chain event monitoring
-eventListener.start().catch((err) => {
-  app.log.error({ err }, "Failed to start event listener");
-});
 
 // Graceful shutdown
 process.on("SIGTERM", async () => {
@@ -191,10 +188,11 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-app
-  .listen({ port: env.port, host: "0.0.0.0" })
-  .then((addr) => app.log.info(`cipherpay-server listening on ${addr}`))
-  .catch((err) => {
-    app.log.error(err);
-    process.exit(1);
-  });
+// Listen first so the HTTP server is ready before the UI (or other clients) connect
+await app.listen({ port: env.port, host: "0.0.0.0" });
+app.log.info(`cipherpay-server listening on http://0.0.0.0:${env.port}`);
+
+// Start on-chain event monitoring after server is listening
+eventListener.start().catch((err) => {
+  app.log.error({ err }, "Failed to start event listener");
+});

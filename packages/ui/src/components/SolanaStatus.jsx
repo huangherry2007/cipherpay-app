@@ -124,85 +124,49 @@ function SolanaStatus() {
 
     const fetchMerkleRoot = async () => {
         if (!isMountedRef.current) return;
-        
-        try {
-            // Try to use SDK service method first
-            try {
-                const root = await cipherPayService.fetchMerkleRoot();
-                if (isMountedRef.current) {
-                    setMerkleRoot(root);
-                }
-                return;
-            } catch (sdkError) {
-                console.log('SDK merkle root fetch failed, trying fallback:', sdkError);
-            }
 
-            // Fallback to direct API call through backend server
-            const serverUrl = getServerUrl();
+        // Prefer backend (works in browser; SDK merkle client often unavailable)
+        const serverUrl = getServerUrl();
+        try {
             const response = await fetch(`${serverUrl}/api/v1/merkle/root`);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Response is not JSON');
-            }
+            if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
             const data = await response.json();
             if (data.success && isMountedRef.current) {
                 setMerkleRoot(data.root);
             }
         } catch (error) {
             if (isMountedRef.current) {
-                console.error('Failed to fetch merkle root:', error);
+                try {
+                    const root = await cipherPayService.fetchMerkleRoot();
+                    if (isMountedRef.current) setMerkleRoot(root);
+                } catch (_) {
+                    // Expected in browser when merkle client not available — no log
+                }
             }
         }
     };
 
     const fetchCircuits = async () => {
         if (!isMountedRef.current) return;
-        
-        try {
-            // Try to use SDK service method first
-            if (cipherPayService.sdk?.relayerClient) {
-                try {
-                    const circuitsData = await cipherPayService.sdk.relayerClient.getCircuits();
-                    if (isMountedRef.current) {
-                        setCircuits(circuitsData.circuits || []);
-                    }
-                    return;
-                } catch (sdkError) {
-                    console.log('SDK circuits fetch failed, trying fallback:', sdkError);
-                }
-            }
 
-            // Fallback to direct API call through backend server
-            // Note: Circuits endpoint might need to go through backend or directly to relayer
-            // For now, try through backend first, then fallback to relayer if needed
-            const serverUrl = getServerUrl();
-            let response;
-            try {
-                // Try through backend if it proxies this endpoint
-                response = await fetch(`${serverUrl}/api/v1/circuits`);
-            } catch (serverError) {
-                // If backend doesn't proxy, we might need direct access, but this shouldn't happen in production
-                // For now, just throw the error
-                throw serverError;
+        const serverUrl = getServerUrl();
+        try {
+            const response = await fetch(`${serverUrl}/api/v1/circuits`);
+            if (response.status === 404) {
+                // Backend has no circuits endpoint — use empty list (UI has circuits in public/circuits)
+                if (isMountedRef.current) setCircuits([]);
+                return;
             }
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Response is not JSON');
-            }
+            if (!contentType || !contentType.includes('application/json')) throw new Error('Response is not JSON');
             const data = await response.json();
-            if (data.success && isMountedRef.current) {
-                setCircuits(data.circuits);
-            }
+            if (data.success && isMountedRef.current) setCircuits(data.circuits || []);
         } catch (error) {
-            if (isMountedRef.current) {
-                console.error('Failed to fetch circuits:', error);
-            }
+            if (isMountedRef.current) setCircuits([]);
+            // No console.error — 404 / missing endpoint is expected
         }
     };
 

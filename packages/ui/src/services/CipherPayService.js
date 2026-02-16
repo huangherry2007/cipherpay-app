@@ -1553,16 +1553,11 @@ class CipherPayService {
     async fetchMerkleRoot() {
         if (!this.isInitialized) await this.initialize();
 
-        try {
-            // Check if merkleTreeClient is available
-            if (!this.sdk?.merkleTreeClient) {
-                throw new Error('Merkle Tree Client is not available. It may not be initialized or may require additional configuration.');
-            }
-            return await this.sdk.merkleTreeClient.fetchMerkleRoot();
-        } catch (error) {
-            console.error('Failed to fetch Merkle root:', error);
-            throw error;
+        // Merkle tree client is often not available in browser SDK — callers should use backend fallback
+        if (!this.sdk?.merkleTreeClient) {
+            throw new Error('Merkle Tree Client is not available. It may not be initialized or may require additional configuration.');
         }
+        return await this.sdk.merkleTreeClient.fetchMerkleRoot();
     }
 
     async getMerklePath(commitment) {
@@ -1986,6 +1981,10 @@ class CipherPayService {
             const overview = await fetchAccountOverview(options);
             return overview;
         } catch (error) {
+            // Not authenticated is expected when user is not logged in — return empty overview
+            if (error?.message?.includes('Not authenticated') || error?.message?.includes('authenticated')) {
+                return { notes: [], shieldedBalance: 0n, spendableNotes: 0, totalNotes: 0 };
+            }
             console.error('[CipherPayService] Failed to get account overview from backend:', error);
             throw error;
         }
