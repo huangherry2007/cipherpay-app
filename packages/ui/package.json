@@ -31,7 +31,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "mkdir -p public/sdk && cp ../sdk/dist/browser/cipherpay-sdk.browser.js public/sdk/cipherpay-sdk.browser.js || true"
+    "postinstall": "mkdir -p public/sdk && ([ -f ../sdk/dist/browser/cipherpay-sdk.browser.js ] && cp ../sdk/dist/browser/cipherpay-sdk.browser.js public/sdk/cipherpay-sdk.browser.js) || true"
   },
   "eslintConfig": {
     "extends": [

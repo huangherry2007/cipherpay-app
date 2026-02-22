@@ -21,6 +21,8 @@ This is a monorepo containing three packages:
 
 ### Installation
 
+This monorepo uses **pnpm** (workspace protocol); do not use `npm install`.
+
 ```bash
 # Install dependencies for all packages
 pnpm install
